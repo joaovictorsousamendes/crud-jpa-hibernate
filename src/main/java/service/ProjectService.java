@@ -1,0 +1,219 @@
+package service;
+
+import entity.Department;
+import entity.Employee;
+import entity.Project;
+
+import jakarta.persistence.EntityManager;
+
+import repository.DepartmentRepository;
+import repository.EmployeeRepository;
+import repository.ProjectRepository;
+
+import util.JPAUtil;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+public class ProjectService implements ServiceInterface<Project>{
+
+    private void validateId(long id){
+        if(id < 1) {
+            throw new IllegalArgumentException("ID " + id + " is not valid");
+        }
+    }
+
+    private void validateStringAttribute(String str, String attributeName){
+        if(str == null || str.isBlank()){
+            throw new IllegalArgumentException(attributeName + " is blank or null.");
+        }
+    }
+
+    private void validateDates(LocalDate startDate, LocalDate finishDate){
+        if(startDate == null) throw new IllegalArgumentException("Start date should not be null.");
+
+        if(finishDate != null && finishDate.isBefore(startDate)){
+            throw new IllegalArgumentException("Finish date must be equal or after start date.");
+        }
+    }
+
+    @Override
+    public void validateEntity(Project project){
+        if(project == null) throw new IllegalArgumentException("Project not found.");
+
+        // Department must be assigned to a department
+        if(project.getDepartment() == null) throw new IllegalStateException(
+                "Project is not assigned to a department.");
+
+        validateStringAttribute(project.getName(), "project name");
+        validateDates(project.getStartDate(), project.getFinishDate());
+
+    }
+
+    @Override
+    public void save(Project project){
+        validateEntity(project);
+
+        EntityManager entityManager = JPAUtil.getEntityManager();
+        try {
+            entityManager.getTransaction().begin();
+
+            entityManager.persist(project);
+
+            entityManager.getTransaction().commit();
+        } catch (Exception e){
+            if(entityManager.getTransaction().isActive()){
+                entityManager.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            entityManager.close();
+        }
+    }
+
+    @Override
+    public void update(Project project){
+        validateEntity(project);
+
+        EntityManager entityManager = JPAUtil.getEntityManager();
+        try{
+            entityManager.getTransaction().begin();
+
+            entityManager.merge(project);
+
+            entityManager.getTransaction().commit();
+        } catch (Exception e){
+            if(entityManager.getTransaction().isActive()){
+                entityManager.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            entityManager.close();
+        }
+    }
+
+    @Override
+    public Project getById(long id){
+        validateId(id);
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            Project project = entityManager.find(Project.class, id);
+
+            validateEntity(project);
+            return project;
+        }
+    }
+
+    @Override
+    public List<Project> getAll(){
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            return new ProjectRepository(entityManager).findAll().stream().toList();
+        }
+    }
+
+    @Override
+    public List<Project> getAll(int startIndex, int maxResults){
+        if(startIndex < 0 || maxResults < 1) throw new IllegalArgumentException("Invalid argument");
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            return new ProjectRepository(entityManager).findAll(startIndex, maxResults).stream().toList();
+        }
+    }
+
+    @Override
+    public void delete(long id){
+        validateId(id);
+
+        EntityManager entityManager = JPAUtil.getEntityManager();
+        try{
+            entityManager.getTransaction().begin();
+
+            ProjectRepository repository = new ProjectRepository(entityManager);
+            Project project = entityManager.find(Project.class, id);
+
+            if(project == null) return;
+
+            // Removing dependencies
+            Department department = project.getDepartment();
+
+            project.removeAllEmployees();
+            if(department != null) department.removeProject(project);
+
+            entityManager.remove(project);
+
+            entityManager.getTransaction().commit();
+        } catch (Exception e){
+            if(entityManager.getTransaction().isActive()){
+                entityManager.getTransaction().rollback();
+            }
+            throw e;
+        } finally {
+            entityManager.close();
+        }
+
+    }
+
+    public Project getByIdWithEmployees(long id){
+        validateId(id);
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            ProjectRepository repository = new ProjectRepository(entityManager);
+            Project project = entityManager.find(Project.class, id);
+
+            validateEntity(project);
+            repository.initializeEmployees(project);
+            return project;
+        }
+    }
+
+    public List<Project> getByDepartmentId(long departmentId){
+        validateId(departmentId);
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()){
+            ProjectRepository repository = new ProjectRepository(entityManager);
+            Department department = entityManager.find(Department.class, departmentId);
+
+            if(department == null) {
+                throw new IllegalArgumentException("Department with id " + departmentId + " does not exist.");
+            }
+            return repository.findByDepartmentId(departmentId).stream().toList();
+        }
+    }
+
+    public List<Project> getByEmployeeId(long employeeId){
+        validateId(employeeId);
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            ProjectRepository repository = new ProjectRepository(entityManager);
+            Employee employee = entityManager.find(Employee.class, employeeId);
+
+            if(employee == null){
+            throw new IllegalArgumentException("Employee with id " + employeeId + " does not exist.");
+            }
+            return repository.findByEmployeeId(employeeId).stream().toList();
+        }
+    }
+
+    public List<Project> getByName(String name){
+        validateStringAttribute(name, "project name");
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            return new ProjectRepository(entityManager).findByName(standarizeString(name))
+                    .stream().toList();
+        }
+    }
+
+    public List<Project> getByStartDate(LocalDate date){
+        try(EntityManager entityManager = JPAUtil.getEntityManager()){
+            return new ProjectRepository(entityManager).findByStartDate(date).stream().toList();
+        }
+    }
+
+    public List<Project> getByFinishDate(LocalDate date){
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            return new ProjectRepository(entityManager).findByFinishDate(date).stream().toList();
+        }
+    }
+
+}
