@@ -19,14 +19,14 @@ public class Department implements EntityInterface {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "department_id")
-    private long id;
+    private Long id;
     private String name;
 
-    @Setter(AccessLevel.PROTECTED)
+    @Setter(AccessLevel.NONE)
     @OneToMany(mappedBy = "department")
     private Set<Employee> employees;
 
-    @Setter(AccessLevel.PROTECTED)
+    @Setter(AccessLevel.NONE)
     @OneToMany(mappedBy = "department")
     private Set<Project> projects;
 
@@ -35,6 +35,32 @@ public class Department implements EntityInterface {
         projects = new HashSet<>();
     }
 
+    /**
+     * Compare Department objects based on id or reference.
+     * @param obj   the reference object with which to compare.
+     * @return true if the objects are the same. false otherwise.
+     */
+    @Override
+    public boolean equals(Object obj){
+        if(obj == this) return true;
+
+        if(obj == null) return false;
+
+        if(!(obj instanceof  Department)) return false;
+
+        Department department = (Department) obj;
+
+        return department.getId() != null && department.getId().equals(id);
+    }
+
+    /**
+     * Returns a constant hash code for all instances of Department.
+     * @return the hash code of the Department class.
+     */
+    @Override
+    public int hashCode(){
+        return getClass().hashCode();
+    }
 
     // Setter manually written with standardization of string.
     public void setName(String name){
@@ -81,20 +107,24 @@ public class Department implements EntityInterface {
         }
     }
 
-    public void removeEmployee(Employee employee){
-        if(employee == null) return;
+    public boolean removeEmployee(Employee employee){
+        if(employee == null) return false;
 
         if(employees.remove(employee)){
             employee.setDepartment(null);
+            return true;
         }
+        return false;
     }
 
-    public void removeProject(Project project){
-        if(project == null) return;
+    public boolean removeProject(Project project){
+        if(project == null) return false;
 
         if(projects.remove(project)) {
             project.setDepartment(null);
+            return true;
         }
+        return false;
     }
 
     public void removeAllEmployees(){

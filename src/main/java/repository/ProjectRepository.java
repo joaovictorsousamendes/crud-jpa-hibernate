@@ -18,7 +18,7 @@ public class ProjectRepository extends JpaRepository<Project> {
     }
 
     /**
-     * Initialize the employees list of the specified project.
+     * Initialize the employees collection of the specified project.
      *
      */
     public void initializeEmployees(Project project){

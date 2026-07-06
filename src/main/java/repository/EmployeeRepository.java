@@ -1,7 +1,7 @@
 package repository;
 
-import entity.Department;
 import entity.Employee;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.hibernate.Hibernate;
@@ -18,7 +18,7 @@ public class EmployeeRepository extends JpaRepository<Employee>{
     }
 
     /**
-     * Initialize the projects list of the specified employee.
+     * Initialize the projects collection of the specified employee.
      */
     public void initializeProjects(Employee employee){
         Objects.requireNonNull(employee, "Employee can not be null.");

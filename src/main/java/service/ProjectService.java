@@ -1,37 +1,21 @@
 package service;
 
+import util.JPAUtil;
+
 import entity.Department;
 import entity.Employee;
 import entity.Project;
+import repository.ProjectRepository;
 
 import jakarta.persistence.EntityManager;
 
-import repository.DepartmentRepository;
-import repository.EmployeeRepository;
-import repository.ProjectRepository;
-
-import util.JPAUtil;
-
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 public class ProjectService implements ServiceInterface<Project>{
 
-    private void validateId(long id){
-        if(id < 1) {
-            throw new IllegalArgumentException("ID " + id + " is not valid");
-        }
-    }
-
-    private void validateStringAttribute(String str, String attributeName){
-        if(str == null || str.isBlank()){
-            throw new IllegalArgumentException(attributeName + " is blank or null.");
-        }
-    }
-
     private void validateDates(LocalDate startDate, LocalDate finishDate){
-        if(startDate == null) throw new IllegalArgumentException("Start date should not be null.");
+        if(startDate == null) throw new IllegalArgumentException("Start date can not be null.");
 
         if(finishDate != null && finishDate.isBefore(startDate)){
             throw new IllegalArgumentException("Finish date must be equal or after start date.");
@@ -42,7 +26,7 @@ public class ProjectService implements ServiceInterface<Project>{
     public void validateEntity(Project project){
         if(project == null) throw new IllegalArgumentException("Project not found.");
 
-        // Department must be assigned to a department
+        // Project must be assigned to a department
         if(project.getDepartment() == null) throw new IllegalStateException(
                 "Project is not assigned to a department.");
 
@@ -134,12 +118,12 @@ public class ProjectService implements ServiceInterface<Project>{
 
             if(project == null) return;
 
-            // Removing dependencies
+            // Removing dependencies.
             Department department = project.getDepartment();
 
             project.removeAllEmployees();
             if(department != null) department.removeProject(project);
-
+            // Deleting entity.
             entityManager.remove(project);
 
             entityManager.getTransaction().commit();
@@ -153,7 +137,11 @@ public class ProjectService implements ServiceInterface<Project>{
         }
 
     }
-
+    /**
+     * returns a Project with its employee collection loaded.
+     * @param id: project id.
+     * @return the Project with the corresponding id with its employee collection loaded.
+     */
     public Project getByIdWithEmployees(long id){
         validateId(id);
 
@@ -175,7 +163,7 @@ public class ProjectService implements ServiceInterface<Project>{
             Department department = entityManager.find(Department.class, departmentId);
 
             if(department == null) {
-                throw new IllegalArgumentException("Department with id " + departmentId + " does not exist.");
+                throw new IllegalArgumentException("Department with id: " + departmentId + " does not exist.");
             }
             return repository.findByDepartmentId(departmentId).stream().toList();
         }
@@ -189,7 +177,7 @@ public class ProjectService implements ServiceInterface<Project>{
             Employee employee = entityManager.find(Employee.class, employeeId);
 
             if(employee == null){
-            throw new IllegalArgumentException("Employee with id " + employeeId + " does not exist.");
+            throw new IllegalArgumentException("Employee with id: " + employeeId + " does not exist.");
             }
             return repository.findByEmployeeId(employeeId).stream().toList();
         }

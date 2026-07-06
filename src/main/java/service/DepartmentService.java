@@ -1,26 +1,15 @@
 package service;
 
+import util.JPAUtil;
 import entity.Department;
+import repository.DepartmentRepository;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import repository.DepartmentRepository;
-import util.JPAUtil;
 
 import java.util.List;
-import java.util.Optional;
 
 public class DepartmentService implements ServiceInterface<Department>{
-
-    private void validateId(long id){
-        if(id < 1) throw new IllegalArgumentException("ID " + id + " is not valid");
-    }
-
-    private void validateStringAttribute(String str, String attributeName){
-        if(str == null || str.isBlank()){
-            throw new IllegalArgumentException(attributeName + " is blank or null.");
-        }
-    }
-
     @Override
     public void validateEntity(Department department){
         if(department == null){
@@ -120,6 +109,7 @@ public class DepartmentService implements ServiceInterface<Department>{
             department.removeAllEmployees();
             department.removeAllProjects();
 
+            // Deleting entity
             entityManager.remove(department);
 
             entityManager.getTransaction().commit();
@@ -134,6 +124,11 @@ public class DepartmentService implements ServiceInterface<Department>{
     }
 
 
+    /**
+     * returns a Department with its employee collection loaded.
+     * @param id: the department id.
+     * @return the Department with the corresponding id with its employee collection loaded.
+     */
     public Department getByIdWithEmployees(long id){
         validateId(id);
 
@@ -147,6 +142,11 @@ public class DepartmentService implements ServiceInterface<Department>{
         }
     }
 
+    /**
+     * returns a Department with its project collection loaded.
+     * @param id: the department id.
+     * @return the Department with the corresponding id with its project collection loaded.
+     */
     public Department getByIdWithProjects(long id){
         validateId(id);
 
@@ -160,6 +160,11 @@ public class DepartmentService implements ServiceInterface<Department>{
         }
     }
 
+    /**
+     * returns a Department with all its collections loaded.
+     * @param id: the department id.
+     * @return the Department with the corresponding id with its employee and project collection loaded.
+     */
     public Department getByIdComplete(long id){
         validateId(id);
 
@@ -174,6 +179,7 @@ public class DepartmentService implements ServiceInterface<Department>{
         }
     }
 
+
     public Department getByName(String departmentName){
         validateStringAttribute(departmentName, "department name");
 
@@ -184,6 +190,4 @@ public class DepartmentService implements ServiceInterface<Department>{
                     .orElseThrow(() -> new EntityNotFoundException("Department not found."));
         }
     }
-
-
 }

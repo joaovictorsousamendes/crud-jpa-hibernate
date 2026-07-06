@@ -1,29 +1,17 @@
 package service;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
+import util.JPAUtil;
 import repository.*;
 import entity.*;
-import util.JPAUtil;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class EmployeeService implements ServiceInterface<Employee>{
-
-    private void validateId(long id){
-        if(id < 1) {
-            throw new IllegalArgumentException("ID " + id + " is not valid");
-        }
-    }
-    
-    private void validateStringAttribute(String str, String attributeName){
-        if(str == null || str.isBlank()){
-            throw new IllegalArgumentException(attributeName + " is blank or null.");
-        }
-    }
 
     private void validateEmail(String email){
        if(email == null || email.isBlank() || !email.contains("@")){
@@ -33,16 +21,15 @@ public class EmployeeService implements ServiceInterface<Employee>{
 
     private void validateSalary(BigDecimal salary){
         if(salary == null || salary.compareTo(BigDecimal.valueOf(0)) < 1){
-            throw new IllegalArgumentException("Salary " + salary + " is not valid.");
+            throw new IllegalArgumentException("Salary not valid.");
         }
     }
 
     private void validateSalaryRange(BigDecimal minSalary, BigDecimal maxSalary){
         if(minSalary.compareTo(maxSalary) > 0){
-            throw new IllegalArgumentException("minimum salary must be smaller than maximum salary.");
+            throw new IllegalArgumentException("Minimum salary must be smaller than maximum salary.");
         }
     }
-
 
     @Override
     public void validateEntity(Employee employee){
@@ -141,7 +128,7 @@ public class EmployeeService implements ServiceInterface<Employee>{
                 employee.getDepartment().removeEmployee(employee);
             }
             employee.removeAllProjects();
-
+            // Deleting entity
             entityManager.remove(employee);
 
             entityManager.getTransaction().commit();
@@ -155,12 +142,17 @@ public class EmployeeService implements ServiceInterface<Employee>{
         }
     }
 
+    /**
+     * Assign an employee to a project.
+     * @param employeeId: id of the employee.
+     * @param projectId: id of the project.
+     * @return true if the employee has been assigned to the project; false otherwise.
+     */
     public boolean assignEmployeeToProject(long employeeId, long projectId){
         validateId(employeeId);
         validateId(projectId);
 
         EntityManager entityManager = JPAUtil.getEntityManager();
-
         try {
             entityManager.getTransaction().begin();
 
@@ -189,6 +181,12 @@ public class EmployeeService implements ServiceInterface<Employee>{
         }
     }
 
+    /**
+     * Removes an employee of a project.
+     * @param employeeId: id of the employee.
+     * @param projectId: id of the project.
+     * @return true if the remotion was successful; false otherwise.
+     */
     public boolean removeEmployeeFromProject(long employeeId, long projectId){
         validateId(employeeId);
         validateId(projectId);
@@ -222,6 +220,11 @@ public class EmployeeService implements ServiceInterface<Employee>{
         }
     }
 
+    /**
+     * Returns an Employee with its project collection loaded.
+     * @param id: employee id.
+     * @return the Employee with corresponding id with its project collection loaded.
+     */
     public Employee getByIdWithProjects(long id){
         validateId(id);
 
@@ -333,7 +336,11 @@ public class EmployeeService implements ServiceInterface<Employee>{
         }
     }
 
-
+    /**
+     * Moves an employee to a different department
+     * @param employeeId: employee id.
+     * @param newDepartmentId: id of the new department.
+     */
     public void changeDepartment(long employeeId, long newDepartmentId){
         validateId(employeeId);
         validateId(newDepartmentId);

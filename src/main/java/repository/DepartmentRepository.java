@@ -1,8 +1,8 @@
 package repository;
 
 import entity.Department;
-import jakarta.persistence.EntityManager;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.hibernate.Hibernate;
 
@@ -14,20 +14,19 @@ public class DepartmentRepository extends JpaRepository<Department> {
         super(Department.class, entityManager);
     }
 
-
     /**
-     * Initialize the employees list of the specified department.
-     * @param department
+     * Initialize the employees collection of the specified department.
+     * @param department the department that will have the employee collections initialized.
      */
+
     public void initializeEmployees(Department department){
         Objects.requireNonNull(department, "Department object is null.");
         Hibernate.initialize(department.getEmployees());
     }
 
-
     /**
-     * Initialize the projects list of the specified department.
-     * @param department
+     * Initialize the projects collection of the specified department.
+     * @param department the department that will have the project collections initialized.
      */
     public void initializeProjects(Department department){
         Objects.requireNonNull(department, "Department object is null.");

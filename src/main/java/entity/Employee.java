@@ -6,10 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 
 @Entity
 @Table(name = "employees")
@@ -20,7 +17,7 @@ public class Employee implements EntityInterface {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "employee_id")
-    private long id;
+    private Long id;
 
     @Column(name = "first_name")
     private String firstName;
@@ -31,7 +28,8 @@ public class Employee implements EntityInterface {
     @Column(nullable = false, precision = 12, scale = 2) // max 12 digits, 2 decimal digits.
     private BigDecimal salary;
 
-    @Setter(AccessLevel.PROTECTED) // Used on Department.addEmployee() and Department.removeEmployee()
+    // Setter used on entity.Department.addEmployee() and entity.Department.removeEmployee()
+    @Setter(AccessLevel.PROTECTED)
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;
@@ -49,6 +47,33 @@ public class Employee implements EntityInterface {
         projects = new HashSet<>();
     }
 
+    /**
+     * Compare Employee objects based on id or reference.
+     * @param obj  the reference object with which to compare.
+     * @return true if the objects are the same. false otherwise.
+     */
+    @Override
+    public boolean equals(Object obj){
+        if(obj == this) return true;
+
+        if(obj == null) return false;
+
+        if(!(obj instanceof Employee)) return false;
+
+        Employee employee = (Employee) obj;
+
+        return employee.getId() != null && employee.getId().equals(id);
+    }
+
+    /**
+     * Returns a constant hash code for all instances of Employee.
+     * @return the hash code of the Employee class.
+     */
+    @Override
+    public int hashCode(){
+        return getClass().hashCode();
+    }
+
     // Setter manually written with standardization of string.
     public void setFirstName(String firstName){
         this.firstName = standarizeString(firstName);
@@ -62,7 +87,7 @@ public class Employee implements EntityInterface {
 
     // enity.Employee has all the logic behind the relation between Employee and Project.
     public boolean addProject(Project project){
-        if(project == null) throw new IllegalArgumentException("Instance of Project passed is null.");
+        if(project == null) throw new IllegalArgumentException("Project cannot be null.");
 
         if(!project.getDepartment().equals(department)){
             throw new IllegalArgumentException("Project and Employee must be on the same department.");
@@ -75,9 +100,14 @@ public class Employee implements EntityInterface {
         return false;
     }
 
+    public void addProjects(Collection<Project> projectCollection){
+        for(Project p : projectCollection){
+            addProject(p);
+        }
+    }
+
     public boolean removeProject(Project project){
         if(project == null) return false;
-
 
         if(projects.remove(project)){
             project.getEmployees().remove(this);
