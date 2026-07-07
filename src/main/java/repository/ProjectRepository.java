@@ -4,12 +4,12 @@ import entity.Department;
 import entity.Project;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import org.hibernate.Hibernate;
 
 
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 
 
 public class ProjectRepository extends JpaRepository<Project> {
@@ -18,12 +18,17 @@ public class ProjectRepository extends JpaRepository<Project> {
     }
 
     /**
-     * Initialize the employees collection of the specified project.
-     *
+     * returns a Projects entity with its employees collection loaded.
+     * @param id project id.
+     * @return the Project with the Employee collection loaded.
      */
-    public void initializeEmployees(Project project){
-        Objects.requireNonNull(project, "Department object is null.");
-        Hibernate.initialize(project.getEmployees());
+    public Optional<Project> findByIdWithEmployees(long id){
+        TypedQuery<Project> query = entityManager.createQuery(
+                "SELECT DISTINCT p FROM Project p LEFT JOIN FETCH p.employees " +
+                        "WHERE p.id = :id", Project.class
+        );
+        query.setParameter("id", id);
+        return Optional.ofNullable(query.getSingleResultOrNull());
     }
 
     public Collection<Project> findByDepartmentId(long departmentId){

@@ -8,6 +8,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 
 import java.util.List;
+import java.util.Optional;
 
 public class DepartmentService implements ServiceInterface<Department>{
     @Override
@@ -67,7 +68,9 @@ public class DepartmentService implements ServiceInterface<Department>{
         try(EntityManager entityManager = JPAUtil.getEntityManager()){
             Department department = entityManager.find(Department.class, id);
 
-            validateEntity(department);
+            if(department == null){
+                throw new EntityNotFoundException("Department with id " + id + " not found.");
+            }
             return department;
         }
     }
@@ -97,20 +100,16 @@ public class DepartmentService implements ServiceInterface<Department>{
             entityManager.getTransaction().begin();
 
             DepartmentRepository repository = new DepartmentRepository(entityManager);
-            Department department = entityManager.find(Department.class, id);
 
-            if(department == null) return;
-
-            // Loading dependencies
-            repository.initializeProjects(department);
-            repository.initializeEmployees(department);
-
-            // Removing dependencies
-            department.removeAllEmployees();
-            department.removeAllProjects();
-
-            // Deleting entity
-            entityManager.remove(department);
+            repository.findByIdComplete(id).ifPresent(
+                    department -> {
+                        // Removing dependencies
+                        department.removeAllEmployees();
+                        department.removeAllProjects();
+                        // Deleting entity
+                        entityManager.remove(department);
+                    }
+            );
 
             entityManager.getTransaction().commit();
         } catch (Exception e){
@@ -133,12 +132,9 @@ public class DepartmentService implements ServiceInterface<Department>{
         validateId(id);
 
         try(EntityManager entityManager = JPAUtil.getEntityManager()){
-            DepartmentRepository repository = new DepartmentRepository(entityManager);
-            Department department = entityManager.find(Department.class, id);
-
-            validateEntity(department);
-            repository.initializeEmployees(department);
-            return department;
+            return new DepartmentRepository(entityManager).findByIdWithEmployees(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Department with id " + id +
+                            " not found."));
         }
     }
 
@@ -151,12 +147,9 @@ public class DepartmentService implements ServiceInterface<Department>{
         validateId(id);
 
         try(EntityManager entityManager = JPAUtil.getEntityManager()){
-            DepartmentRepository repository = new DepartmentRepository(entityManager);
-            Department department = entityManager.find(Department.class ,id);
-
-            validateEntity(department);
-            repository.initializeProjects(department);
-            return department;
+            return new DepartmentRepository(entityManager).findByIdWithProjects(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Department with id " + id +
+                            " not found."));
         }
     }
 
@@ -169,13 +162,9 @@ public class DepartmentService implements ServiceInterface<Department>{
         validateId(id);
 
         try(EntityManager entityManager = JPAUtil.getEntityManager()){
-            DepartmentRepository repository = new DepartmentRepository(entityManager);
-            Department department = entityManager.find(Department.class ,id);
-
-            validateEntity(department);
-            repository.initializeEmployees(department);
-            repository.initializeProjects(department);
-            return department;
+            return new DepartmentRepository(entityManager).findByIdComplete(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Department with id " + id +
+                            " not found."));
         }
     }
 
@@ -187,7 +176,7 @@ public class DepartmentService implements ServiceInterface<Department>{
             DepartmentRepository repository = new DepartmentRepository(entityManager);
 
             return repository.findByName(standarizeString(departmentName))
-                    .orElseThrow(() -> new EntityNotFoundException("Department not found."));
+                    .orElseThrow(() -> new EntityNotFoundException("Department '" + departmentName + " not found."));
         }
     }
 }

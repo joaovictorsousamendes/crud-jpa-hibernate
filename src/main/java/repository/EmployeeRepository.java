@@ -4,11 +4,9 @@ import entity.Employee;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import org.hibernate.Hibernate;
 
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Optional;
 
 public class EmployeeRepository extends JpaRepository<Employee>{
@@ -18,11 +16,17 @@ public class EmployeeRepository extends JpaRepository<Employee>{
     }
 
     /**
-     * Initialize the projects collection of the specified employee.
+     * returns an Employee entity with its projects collection loaded.
+     * @param id employee id.
+     * @return the Employee with the Project collection loaded.
      */
-    public void initializeProjects(Employee employee){
-        Objects.requireNonNull(employee, "Employee can not be null.");
-        Hibernate.initialize(employee.getProjects());
+    public Optional<Employee> findByIdWithProjects(long id){
+        TypedQuery<Employee> query = entityManager.createQuery(
+                "SELECT DISTINCT e FROM Employee e LEFT JOIN FETCH e.projects " +
+                        "WHERE e.id = :id", Employee.class
+        );
+        query.setParameter("id", id);
+        return Optional.ofNullable(query.getSingleResultOrNull());
     }
 
     public Collection<Employee> findByFirstName(String firstName){
@@ -76,7 +80,14 @@ public class EmployeeRepository extends JpaRepository<Employee>{
         return query.getResultList();
     }
 
-    public Collection<Employee> findByDepartmentIdAndSalary(long idDepartment, BigDecimal minSalary, BigDecimal maxSalary){
+    /**
+     * returns all the employees with the corresponding department id and with a salary between the specified.
+     * @param idDepartment department id.
+     * @param minSalary minimum salary range.
+     * @param maxSalary maximum salary range.
+     * @return a collection of employees with the corresponding department id and with a salary between the specified.
+     */
+    public Collection<Employee> findByDepartmentIdAndSalaryBetween(long idDepartment, BigDecimal minSalary, BigDecimal maxSalary){
         TypedQuery<Employee> query = entityManager.createQuery(
             "SELECT e FROM Employee e WHERE e.department.id = :idDepartment AND " +
                "(e.salary BETWEEN :minSalary AND :maxSalary)", Employee.class
@@ -87,14 +98,14 @@ public class EmployeeRepository extends JpaRepository<Employee>{
         return query.getResultList();
     }
 
-    public Optional<Employee> findMaxSalary(){
+    public Optional<Employee> findMaxSalaryEmployee(){
         return Optional.ofNullable(entityManager.createQuery(
                 "SELECT e FROM Employee e WHERE e.salary = " +
                    "(SELECT MAX(e2.salary) FROM Employee e2)", Employee.class)
                 .getSingleResultOrNull());
     }
 
-    public Optional<Employee> findMinSalary(){
+    public Optional<Employee> findMinSalaryEmployee(){
         return Optional.ofNullable(entityManager.createQuery(
                 "SELECT e FROM Employee e WHERE e.salary = " +
                    "(SELECT MIN(e2.salary) FROM Employee e2)", Employee.class

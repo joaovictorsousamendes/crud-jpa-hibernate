@@ -15,23 +15,47 @@ public class DepartmentRepository extends JpaRepository<Department> {
     }
 
     /**
-     * Initialize the employees collection of the specified department.
-     * @param department the department that will have the employee collections initialized.
+     * returns a Department entity with its employees collection loaded.
+     * @param id department id.
+     * @return the Department with the Employee collection loaded.
      */
-
-    public void initializeEmployees(Department department){
-        Objects.requireNonNull(department, "Department object is null.");
-        Hibernate.initialize(department.getEmployees());
+    public Optional<Department> findByIdWithEmployees(long id){
+        TypedQuery<Department> query = entityManager.createQuery(
+                "SELECT DISTINCT d FROM Department d LEFT JOIN FETCH d.employees " +
+                        "WHERE d.id = :id", Department.class
+        );
+        query.setParameter("id", id);
+        return Optional.ofNullable(query.getSingleResultOrNull());
     }
 
     /**
-     * Initialize the projects collection of the specified department.
-     * @param department the department that will have the project collections initialized.
+     * returns a Department entity with its projects collection loaded.
+     * @param id department id.
+     * @return the Department with the Project collection loaded.
      */
-    public void initializeProjects(Department department){
-        Objects.requireNonNull(department, "Department object is null.");
-        Hibernate.initialize(department.getProjects());
+    public Optional<Department> findByIdWithProjects(long id){
+        TypedQuery<Department> query = entityManager.createQuery(
+                "SELECT DISTINCT d FROM Department d LEFT JOIN FETCH d.projects " +
+                        "WHERE d.id = :id", Department.class
+        );
+        query.setParameter("id", id);
+        return Optional.ofNullable(query.getSingleResultOrNull());
     }
+
+    /**
+     * returns a Department entity with all its collections loaded.
+     * @param id department id.
+     * @return the Department with all its collections loaded.
+     */
+    public Optional<Department> findByIdComplete(long id){
+        TypedQuery<Department> query = entityManager.createQuery(
+                "SELECT DISTINCT d FROM Department d LEFT JOIN FETCH d.employees " +
+                        "LEFT JOIN FETCH d.projects WHERE d.id = :id", Department.class
+        );
+        query.setParameter("id", id);
+        return Optional.ofNullable(query.getSingleResultOrNull());
+    }
+
 
     public Optional<Department> findByName(String name){
         TypedQuery<Department> query = entityManager.createQuery(

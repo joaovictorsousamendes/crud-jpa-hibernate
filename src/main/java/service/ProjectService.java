@@ -1,5 +1,6 @@
 package service;
 
+import jakarta.persistence.EntityNotFoundException;
 import util.JPAUtil;
 
 import entity.Department;
@@ -84,7 +85,9 @@ public class ProjectService implements ServiceInterface<Project>{
         try(EntityManager entityManager = JPAUtil.getEntityManager()) {
             Project project = entityManager.find(Project.class, id);
 
-            validateEntity(project);
+            if(project == null){
+                throw new EntityNotFoundException("Project with id " + id + " not found.");
+            }
             return project;
         }
     }
@@ -146,12 +149,8 @@ public class ProjectService implements ServiceInterface<Project>{
         validateId(id);
 
         try(EntityManager entityManager = JPAUtil.getEntityManager()) {
-            ProjectRepository repository = new ProjectRepository(entityManager);
-            Project project = entityManager.find(Project.class, id);
-
-            validateEntity(project);
-            repository.initializeEmployees(project);
-            return project;
+            return new ProjectRepository(entityManager).findByIdWithEmployees(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Project with id " + id + " not found."));
         }
     }
 
@@ -163,7 +162,7 @@ public class ProjectService implements ServiceInterface<Project>{
             Department department = entityManager.find(Department.class, departmentId);
 
             if(department == null) {
-                throw new IllegalArgumentException("Department with id: " + departmentId + " does not exist.");
+                throw new IllegalArgumentException("Department with id " + departmentId + " not found.");
             }
             return repository.findByDepartmentId(departmentId).stream().toList();
         }

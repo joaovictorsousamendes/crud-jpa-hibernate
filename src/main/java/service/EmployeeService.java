@@ -90,7 +90,9 @@ public class EmployeeService implements ServiceInterface<Employee>{
         try(EntityManager entityManager = JPAUtil.getEntityManager()) {
             Employee employee = entityManager.find(Employee.class, id);
 
-            validateEntity(employee);
+            if(employee == null){
+                throw new EntityNotFoundException("Employee with id " + id + " not found.");
+            }
             return employee;
         }
     }
@@ -119,17 +121,20 @@ public class EmployeeService implements ServiceInterface<Employee>{
         try {
             entityManager.getTransaction().begin();
 
-            Employee employee = entityManager.find(Employee.class, id);
+            EmployeeRepository repository = new EmployeeRepository(entityManager);
 
-            if(employee == null) return;
-
-            // removing dependencies
-            if(employee.getDepartment() != null){
-                employee.getDepartment().removeEmployee(employee);
-            }
-            employee.removeAllProjects();
-            // Deleting entity
-            entityManager.remove(employee);
+            repository.findByIdWithProjects(id).ifPresent(
+                    employee -> {
+                        // removing employee from department.
+                        if(employee.getDepartment() != null){
+                            employee.getDepartment().removeEmployee(employee);
+                        }
+                        // removing dependencies.
+                        employee.removeAllProjects();
+                        // deleting entity.
+                        entityManager.remove(employee);
+                    }
+            );
 
             entityManager.getTransaction().commit();
         } catch (Exception e){
@@ -139,6 +144,20 @@ public class EmployeeService implements ServiceInterface<Employee>{
             throw e;
         } finally {
             entityManager.close();
+        }
+    }
+
+    /**
+     * Returns an Employee with its project collection loaded.
+     * @param id: employee id.
+     * @return the Employee with corresponding id with its project collection loaded.
+     */
+    public Employee getByIdWithProjects(long id){
+        validateId(id);
+
+        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
+            return new EmployeeRepository(entityManager).findByIdWithProjects(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Employee with id " + id + " not found."));
         }
     }
 
@@ -220,24 +239,6 @@ public class EmployeeService implements ServiceInterface<Employee>{
         }
     }
 
-    /**
-     * Returns an Employee with its project collection loaded.
-     * @param id: employee id.
-     * @return the Employee with corresponding id with its project collection loaded.
-     */
-    public Employee getByIdWithProjects(long id){
-        validateId(id);
-
-        try(EntityManager entityManager = JPAUtil.getEntityManager()) {
-            EmployeeRepository repository = new EmployeeRepository(entityManager);
-            Employee employee = entityManager.find(Employee.class, id);
-
-            validateEntity(employee);
-            repository.initializeProjects(employee);
-            return employee;
-        }
-    }
-
 
     public List<Employee> getByFirstName(String firstName){
         validateStringAttribute(firstName, "first name");
@@ -308,14 +309,14 @@ public class EmployeeService implements ServiceInterface<Employee>{
 
     public Employee getMaxSalaryEmployee(){
         try(EntityManager entityManager = JPAUtil.getEntityManager()) {
-            return new EmployeeRepository(entityManager).findMaxSalary()
+            return new EmployeeRepository(entityManager).findMaxSalaryEmployee()
                     .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
         }
     }
 
     public Employee getMinSalaryEmployee(){
         try(EntityManager entityManager = JPAUtil.getEntityManager()) {
-            return new EmployeeRepository(entityManager).findMinSalary()
+            return new EmployeeRepository(entityManager).findMinSalaryEmployee()
                     .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
         }
     }
@@ -332,7 +333,7 @@ public class EmployeeService implements ServiceInterface<Employee>{
             if(department == null){
                 throw new IllegalArgumentException("Department with id " + departmentId + " does not exist.");
             }
-            return repository.findByDepartmentIdAndSalary(departmentId, minSalary, maxSalary).stream().toList();
+            return repository.findByDepartmentIdAndSalaryBetween(departmentId, minSalary, maxSalary).stream().toList();
         }
     }
 
